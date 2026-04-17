@@ -17,6 +17,9 @@ Usage:
     python3 make_report.py --metrics output/metrics.jsonl \
         --baseline results/baseline.json --post results/post_rlvr.json \
         --out results/grpo_report.html
+
+AI-assisted code — generated with Claude Code (Anthropic).
+See README.md for full attribution. Maintainer: Tom Juzek <tjuzek@fsu.edu>.
 """
 
 from __future__ import annotations

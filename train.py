@@ -22,6 +22,9 @@ Usage:
 
     # Resume from checkpoint
     python train.py --resume output/checkpoint-100
+
+AI-assisted code — generated with Claude Code (Anthropic).
+See README.md for full attribution. Maintainer: Tom Juzek <tjuzek@fsu.edu>.
 """
 
 import argparse

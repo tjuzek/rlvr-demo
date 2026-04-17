@@ -67,3 +67,16 @@ python train.py --model meta-llama/Llama-3.2-3B-Instruct
 2. **Verifier**: execute generated code in subprocess, check assertions
 3. **Training (GRPO)**: for each prompt, generate N completions, score with verifier, update policy to favor passing completions
 4. **Evaluation**: pass@1 on 257 held-out MBPP test problems
+
+## AI Attribution
+
+This repository is **AI-assisted / AI-driven code**, generated in Claude Code
+sessions with Anthropic's Claude (Opus 4.6 for the initial pipeline —
+dataset prep, verifier, benchmark, GRPO training script, demo, guide;
+Opus 4.7 for the metrics callback, `make_report.py`, and the themed HTML
+report).
+
+I (Tom Juzek, `tjuzek@fsu.edu`) am the sole human responsible for this
+repository. I reviewed, tested, and executed the code; any error, bug, or
+unexpected behavior is mine to own. The AI is a tool — the work and the
+accountability for it are mine.

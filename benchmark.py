@@ -20,6 +20,9 @@ Usage:
 
     # Compare two runs
     python benchmark.py --compare results/baseline.json results/post_rlvr.json
+
+AI-assisted code — generated with Claude Code (Anthropic).
+See README.md for full attribution. Maintainer: Tom Juzek <tjuzek@fsu.edu>.
 """
 
 import argparse

@@ -19,6 +19,9 @@ Usage:
 
     # Custom model
     python demo_train.py --model meta-llama/Llama-3.2-1B-Instruct
+
+AI-assisted code — generated with Claude Code (Anthropic).
+See README.md for full attribution. Maintainer: Tom Juzek <tjuzek@fsu.edu>.
 """
 
 import argparse
