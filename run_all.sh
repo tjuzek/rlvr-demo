@@ -95,13 +95,20 @@ else
     echo "  COMPARISON"
     echo "========================================"
     python3 benchmark.py --compare results/baseline.json results/post_rlvr.json
+
+    # Step 7: Build themed HTML report for the presentation
+    echo ""
+    echo "[*] Building training report..."
+    python3 make_report.py
 fi
 
 # ---- Optional: push results to git ----
 if [ "$PUSH" = true ]; then
     echo ""
     echo "Pushing results to git..."
-    git add -A results/ demo_output/ output/training_config.json
+    # Force through .gitignore (results/, output/, demo_output/ are ignored by default
+    # to avoid committing bulk artifacts; we selectively include the small ones).
+    git add -f results/ demo_output/ output/training_config.json output/metrics.jsonl
     git commit -m "Add RLVR training results $(date +%Y-%m-%d)"
     git push
     echo "Pushed!"
@@ -121,4 +128,6 @@ else
     echo "  Baseline:    results/baseline.json"
     echo "  Post-RLVR:   results/post_rlvr.json"
     echo "  Adapter:     output/final/"
+    echo "  Report:      results/grpo_report.html"
+    echo "  Metrics:     output/metrics.jsonl"
 fi

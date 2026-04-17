@@ -12,7 +12,7 @@ There are three phases: **local prep**, **Lambda training**, and **presenting**.
 Go to GitHub and create a new repo (e.g. `code-rlvr`). Then push:
 
 ```bash
-cd /home/tom/claudecode/rlvr/rlvr-presentation/code-rlvr
+cd /home/tom/claudecode/rlvr/code-rlvr
 git remote add origin git@github.com:<your-username>/code-rlvr.git
 git push -u origin main
 ```
@@ -110,7 +110,7 @@ git push
 
 ```bash
 # On your laptop
-cd /home/tom/claudecode/rlvr/rlvr-presentation/code-rlvr
+cd /home/tom/claudecode/rlvr/code-rlvr
 git pull
 ```
 

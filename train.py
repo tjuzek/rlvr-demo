@@ -32,10 +32,36 @@ from pathlib import Path
 import torch
 from datasets import Dataset
 from peft import LoraConfig
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    TrainerCallback,
+)
 from trl import GRPOConfig, GRPOTrainer
 
 from verifier import extract_code_from_response, verify_code
+
+
+class MetricsCallback(TrainerCallback):
+    """Stream trainer log_history to a JSONL file as logs are emitted.
+
+    Writing per-log (not per-step) keeps the file small and means a mid-run
+    crash still leaves a plottable partial curve — important for a one-shot
+    demo run on an ephemeral Lambda instance.
+    """
+
+    def __init__(self, out_path: Path):
+        self.out_path = Path(out_path)
+        self.out_path.parent.mkdir(parents=True, exist_ok=True)
+        self.out_path.write_text("")
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if not logs:
+            return
+        record = {"step": state.global_step, **logs}
+        with open(self.out_path, "a") as f:
+            f.write(json.dumps(record) + "\n")
 
 DATA_DIR = Path(__file__).parent / "data"
 OUTPUT_DIR = Path(__file__).parent / "output"
@@ -249,12 +275,14 @@ def main():
 
     # ---- Create trainer ----
     print("Loading model and creating trainer...")
+    metrics_callback = MetricsCallback(output_dir / "metrics.jsonl")
     trainer = GRPOTrainer(
         model=args.model,
         args=training_args,
         train_dataset=dataset,
         reward_funcs=reward_fn,
         peft_config=peft_config,
+        callbacks=[metrics_callback],
         model_init_kwargs={
             "quantization_config": quantization_config,
             "torch_dtype": torch.bfloat16,
