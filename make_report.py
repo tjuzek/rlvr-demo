@@ -39,14 +39,14 @@ WARN = "#f59e0b"
 MUTED = "#a1a1aa"
 
 PLOT_LAYOUT_JS = """{
-  paper_bgcolor: '#09090b',
-  plot_bgcolor: '#141418',
-  font: { color: '#a1a1aa', family: 'JetBrains Mono, monospace', size: 12 },
-  xaxis: { gridcolor: '#27272a' },
-  yaxis: { gridcolor: '#27272a' },
-  margin: { l: 60, r: 20, t: 20, b: 50 },
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(20,20,24,0.45)',
+  font: { color: '#c7c7d1', family: 'JetBrains Mono, ui-monospace, monospace', size: 15 },
+  xaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)', linecolor: 'rgba(255,255,255,0.12)', tickfont: { size: 14 } },
+  yaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)', linecolor: 'rgba(255,255,255,0.12)', tickfont: { size: 14 } },
+  margin: { l: 78, r: 28, t: 28, b: 62 },
   showlegend: true,
-  legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#a1a1aa' } },
+  legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#c7c7d1', size: 14 } },
 }"""
 
 
@@ -257,7 +257,7 @@ def render_reward_chart(rows: list[dict]) -> str:
               f"line: {{color: '{SUCCESS}', width: 3}}}}")
     return f"""
 <h2>Average reward (fraction of generations passing tests)</h2>
-<div id="reward-chart" class="chart"></div>
+<div class="chart-frame"><div id="reward-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('reward-chart', [{raw}, {smooth}],
   {{...PLOT, xaxis: {{...PLOT.xaxis, title: 'Training step'}},
@@ -274,10 +274,10 @@ def render_passat1_chart(baseline: dict | None, post: dict | None) -> str:
     data = (f"[{{x: ['Baseline', 'Post-RLVR'], y: [{b:.2f}, {p:.2f}], "
             f"type: 'bar', marker: {{color: ['{ACCENT}', '{SUCCESS}']}}, "
             f"text: ['{b:.1f}%', '{p:.1f}%'], textposition: 'outside', "
-            f"textfont: {{color: '#e4e4e7', size: 16}}}}]")
+            f"textfont: {{color: '#e4e4e7', size: 18}}}}]")
     return f"""
 <h2>Pass@1 on held-out test set: before vs. after GRPO</h2>
-<div id="passat1-chart" class="chart"></div>
+<div class="chart-frame"><div id="passat1-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('passat1-chart', {data},
   {{...PLOT, showlegend: false,
@@ -295,11 +295,11 @@ def render_kl_chart(rows: list[dict]) -> str:
              f"line: {{color: '{WARN}', width: 2}}, marker: {{size: 5}}}}")
     return f"""
 <h2>KL divergence from reference policy</h2>
-<p style="color:{MUTED};margin-top:-0.5rem;font-size:0.85rem">
+<p class="chart-hint">
   Low = the trained policy stays close to the reference model. If this
   explodes, the model has drifted and outputs will degrade.
 </p>
-<div id="kl-chart" class="chart"></div>
+<div class="chart-frame"><div id="kl-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('kl-chart', [{trace}],
   {{...PLOT, showlegend: false,
@@ -332,13 +332,13 @@ def render_loss_chart(rows: list[dict]) -> str:
         return ""
     return f"""
 <h2>Policy loss and gradient norm</h2>
-<div id="loss-chart" class="chart"></div>
+<div class="chart-frame"><div id="loss-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('loss-chart', [{", ".join(traces)}],
   {{...PLOT,
     xaxis: {{...PLOT.xaxis, title: 'Training step'}},
     yaxis: {{...PLOT.yaxis, title: 'Loss', side: 'left'}},
-    yaxis2: {{gridcolor: '#27272a', title: 'Grad norm',
+    yaxis2: {{gridcolor: 'rgba(255,255,255,0.06)', title: 'Grad norm',
              overlaying: 'y', side: 'right', color: '{DANGER}'}}}},
   {{displayModeBar: false, responsive: true}});
 </script>"""
@@ -355,15 +355,15 @@ def render_flip_chart(flips: dict) -> str:
     trace = (f"{{x: {json.dumps(cats)}, y: {json.dumps(vals)}, "
              f"type: 'bar', marker: {{color: {json.dumps(colors)}}}, "
              f"text: {json.dumps(vals)}, textposition: 'outside', "
-             f"textfont: {{color: '#e4e4e7', size: 14}}}}")
+             f"textfont: {{color: '#e4e4e7', size: 16}}}}")
     return f"""
 <h2>Per-problem flip analysis ({flips['total']} common problems)</h2>
-<p style="color:{MUTED};margin-top:-0.5rem;font-size:0.85rem">
+<p class="chart-hint">
   What happened at the problem level, not just in aggregate. Big green bar
   is the fix rate — how many previously-failing problems the RLVR-trained
   model now solves.
 </p>
-<div id="flip-chart" class="chart"></div>
+<div class="chart-frame"><div id="flip-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('flip-chart', [{trace}],
   {{...PLOT, showlegend: false,
@@ -387,15 +387,16 @@ def render_flip_examples(baseline: dict | None, post: dict | None,
         b_code = escape((b_map[task_id].get("generated_code") or "").strip())
         p_code = escape((p_map[task_id].get("generated_code") or "").strip())
         blocks.append(f"""
-<div class="example fail">
-  <div class="label">Task {task_id} — baseline FAIL</div>
-  <pre>{b_code[:800]}</pre>
-</div>
-<div class="example pass">
-  <div class="label">Task {task_id} — post-RLVR PASS</div>
-  <pre>{p_code[:800]}</pre>
-</div>
-<br>""")
+<div class="example-pair">
+  <div class="example fail">
+    <div class="label">Task {task_id} — baseline FAIL</div>
+    <pre>{b_code[:800]}</pre>
+  </div>
+  <div class="example pass">
+    <div class="label">Task {task_id} — post-RLVR PASS</div>
+    <pre>{p_code[:800]}</pre>
+  </div>
+</div>""")
     if not blocks:
         return ""
     return "<h2>Example fixes — problems the model learned to solve</h2>" + "".join(blocks)
@@ -408,7 +409,7 @@ def render_sibling_note(sibling_label: str | None,
     return f"""
 <div class="sibling-note">
   <b>Companion report:</b>
-  <a href="{escape(sibling_href)}" style="color:{ACCENT}">{escape(sibling_label)}</a>
+  <a href="{escape(sibling_href)}">{escape(sibling_label)}</a>
   — same baseline, different GRPO configuration. Read both to see why low-baseline
   RL sits close to the noise floor.
 </div>"""
@@ -446,84 +447,333 @@ def render_html(metrics_rows: list[dict], baseline: dict | None,
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     return f"""<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RLVR GRPO Training Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
-  body {{
-    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-    background: #09090b;
-    color: #e4e4e7;
-    margin: 0;
-    padding: 2rem;
-    max-width: 900px;
+  :root {{
+    --bg-base:      #09090b;
+    --bg-primary:   #0c0c0f;
+    --bg-secondary: #141418;
+    --bg-card:      #19191f;
+    --bg-elevated:  #1f1f27;
+    --text-primary:   #f0f0f2;
+    --text-secondary: #c7c7d1;
+    --text-muted:     #8b8b9a;
+    --text-faint:     #65657a;
+    --accent:  {ACCENT};
+    --success: #34d399;
+    --danger:  #f87171;
+    --warn:    #fbbf24;
+    --purple:  #a78bfa;
+    --accent-glow:  rgba(77, 142, 255, 0.18);
+    --success-glow: rgba(52, 211, 153, 0.15);
+    --danger-glow:  rgba(248, 113, 113, 0.15);
+    --warn-glow:    rgba(251, 191, 36, 0.14);
+    --border:       rgba(255, 255, 255, 0.07);
+    --border-light: rgba(255, 255, 255, 0.12);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', ui-monospace, monospace;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.35), 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
   }}
-  h1 {{ color: {ACCENT}; font-size: 1.8rem; margin-bottom: 0.25rem; }}
-  h2 {{ color: {MUTED}; font-size: 1.1rem; font-weight: normal;
-        margin-top: 2.5rem; margin-bottom: 0.5rem; }}
-  .subtitle {{ color: #71717a; font-size: 0.9rem; margin-bottom: 2rem; }}
-  .chart {{ width: 100%; max-width: 820px; height: 360px; margin: 0.5rem 0; }}
+
+  * {{ box-sizing: border-box; }}
+
+  html, body {{
+    margin: 0;
+    padding: 0;
+    background: var(--bg-base);
+  }}
+
+  body {{
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1.6;
+    min-height: 100vh;
+    /* Soft radial aura — rhymes with presentation viewport */
+    background-color: var(--bg-base);
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% 0%, rgba(77, 142, 255, 0.055) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 35% at 85% 100%, rgba(167, 139, 250, 0.035) 0%, transparent 60%);
+    background-attachment: fixed;
+    font-feature-settings: 'ss01' 1, 'cv11' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }}
+
+  .container {{
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 3.5rem 4rem 4rem;
+  }}
+
+  /* ── Header ───────────────────────────────────────────────── */
+  .report-header {{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 2rem;
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }}
+  .eyebrow {{
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 0.65rem;
+    opacity: 0.9;
+  }}
+  h1 {{
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 2.85rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.12;
+    margin: 0 0 0.5rem 0;
+    /* Subtle blue→purple gradient on the title, matching title slide */
+    background: linear-gradient(135deg, #4d8eff 0%, #a78bfa 55%, #4d8eff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }}
+  .subtitle {{
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.01em;
+    margin: 0;
+  }}
+  .render-meta {{
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-faint);
+    text-align: right;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }}
+
+  /* ── H2 Section Titles — accent-underline sweep, matches slides ── */
+  h2 {{
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+    line-height: 1.3;
+    margin: 3rem 0 1rem 0;
+    padding-bottom: 0.55rem;
+    background-image: linear-gradient(to right, var(--accent), transparent 35%);
+    background-size: 100% 2px;
+    background-position: bottom left;
+    background-repeat: no-repeat;
+  }}
+
+  /* Opening H2 doesn't need the huge top margin after the header */
+  h2:first-of-type {{ margin-top: 2rem; }}
+
+  p {{ margin: 0.5rem 0 0.9rem; color: var(--text-secondary); }}
+
+  /* ── Sibling companion link ──────────────────────────────── */
+  .sibling-note {{
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(77, 142, 255, 0.04) 100%);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.4rem;
+    margin: 0 0 2rem 0;
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-card);
+  }}
+  .sibling-note b {{ color: var(--text-primary); font-weight: 600; }}
+  .sibling-note a {{
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    transition: border-color 200ms ease;
+  }}
+  .sibling-note a:hover {{ border-bottom-color: var(--accent); }}
+
+  /* ── Stat cards — wide grid, accent glow on top edge ─────── */
   .stats {{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
-    margin: 1.5rem 0;
+    margin: 1.5rem 0 2.5rem 0;
   }}
   .stat {{
-    background: #141418;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 1rem;
+    position: relative;
+    background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.65rem;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
   }}
-  .stat-value {{ font-size: 1.9rem; color: {ACCENT}; }}
-  .stat-label {{ font-size: 0.8rem; color: #71717a;
-                 text-transform: uppercase; letter-spacing: 0.05em; }}
-  .example {{
-    background: #141418;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    font-size: 0.85rem;
+  .stat::before {{
+    content: '';
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
   }}
-  .pass {{ border-left: 3px solid {SUCCESS}; }}
-  .fail {{ border-left: 3px solid {DANGER}; }}
+  .stat-value {{
+    font-family: var(--font-mono);
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+  }}
+  .stat-label {{
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 0.5rem;
+  }}
+
+  /* ── Charts ──────────────────────────────────────────────── */
+  .chart-frame {{
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.25rem 0.75rem;
+    margin: 0.75rem 0 1.5rem;
+    box-shadow: var(--shadow-card);
+  }}
+  .chart {{
+    width: 100%;
+    max-width: 100%;
+    height: 420px;
+    margin: 0;
+  }}
+  .chart-hint {{
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    margin: -0.4rem 0 0.7rem;
+  }}
+
+  /* ── Callouts — the sparse-reward math explanation card ──── */
   .callout {{
-    background: #141418;
-    border: 1px solid #27272a;
-    border-left: 3px solid {WARN};
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin: 0.5rem 0 1rem 0;
-    font-size: 0.9rem;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(251, 191, 36, 0.035) 100%);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--radius-md);
+    padding: 1.4rem 1.65rem;
+    margin: 0.75rem 0 1.75rem;
+    font-size: 1.1rem;
+    line-height: 1.65;
+    box-shadow: var(--shadow-card);
+  }}
+  .callout p {{ margin: 0.45rem 0; color: var(--text-secondary); }}
+  .callout p:first-child {{ margin-top: 0; }}
+  .callout p:last-child {{ margin-bottom: 0; }}
+  .callout b {{ color: var(--text-primary); font-weight: 600; }}
+  .callout i {{ color: var(--purple); font-style: italic; }}
+  .math {{
+    font-family: var(--font-mono);
+    background: var(--bg-base);
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.92em;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+  }}
+
+  /* ── Example code cards (fixes) ──────────────────────────── */
+  .example-pair {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 1.25rem;
+    margin: 1rem 0;
+  }}
+  .example {{
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    margin: 0;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }}
+  .pass {{
+    border-left: 3px solid var(--success);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(52, 211, 153, 0.035) 100%);
+  }}
+  .fail {{
+    border-left: 3px solid var(--danger);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(248, 113, 113, 0.035) 100%);
+  }}
+  pre {{
+    margin: 0.7rem 0 0;
+    white-space: pre-wrap;
+    font-family: var(--font-mono);
+    font-size: 0.98rem;
     line-height: 1.55;
+    color: var(--text-secondary);
+    font-feature-settings: 'zero' 1;
   }}
-  .callout p {{ margin: 0.35rem 0; color: #d4d4d8; }}
-  .callout b {{ color: #e4e4e7; }}
-  .math {{ background: #09090b; padding: 0.15rem 0.4rem;
-           border-radius: 4px; font-size: 0.92rem; }}
-  .sibling-note {{
-    background: #141418;
-    border: 1px solid #27272a;
-    border-left: 3px solid {ACCENT};
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin: 0 0 1.5rem 0;
-    font-size: 0.85rem;
-    color: #d4d4d8;
+  .label {{
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
   }}
-  pre {{ margin: 0.5rem 0; white-space: pre-wrap; color: {MUTED}; }}
-  .label {{ color: #71717a; font-size: 0.75rem; text-transform: uppercase;
-            letter-spacing: 0.05em; }}
-  footer {{ color: #52525b; font-size: 0.75rem; margin-top: 3rem;
-            padding-top: 1rem; border-top: 1px solid #27272a; }}
+  .pass .label {{ color: var(--success); }}
+  .fail .label {{ color: var(--danger); }}
+
+  /* ── Footer ──────────────────────────────────────────────── */
+  footer {{
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    margin-top: 4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }}
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 1100px) {{
+    .container {{ padding: 2.5rem 2rem 3rem; }}
+    .report-header {{ grid-template-columns: 1fr; }}
+    .render-meta {{ text-align: left; }}
+    h1 {{ font-size: 2.2rem; }}
+  }}
 </style>
 </head>
 <body>
+<div class="container">
 
-<h1>RLVR — GRPO Training Report{f" · {escape(label)}" if label else ""}</h1>
-<div class="subtitle">Model: {escape(model_name)} · Rendered {ts}</div>
+<header class="report-header">
+  <div>
+    <div class="eyebrow">RLVR · GRPO Training</div>
+    <h1>RLVR — GRPO Training Report{f" · {escape(label)}" if label else ""}</h1>
+    <div class="subtitle">Model: {escape(model_name)}</div>
+  </div>
+  <div class="render-meta">Rendered {ts}</div>
+</header>
 
 {sibling_note}
 
@@ -551,6 +801,7 @@ const PLOT = {PLOT_LAYOUT_JS};
   results/baseline.json + results/post_rlvr.json
 </footer>
 
+</div>
 </body>
 </html>
 """

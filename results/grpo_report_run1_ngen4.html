@@ -1,87 +1,336 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RLVR GRPO Training Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
-  body {
-    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-    background: #09090b;
-    color: #e4e4e7;
-    margin: 0;
-    padding: 2rem;
-    max-width: 900px;
+  :root {
+    --bg-base:      #09090b;
+    --bg-primary:   #0c0c0f;
+    --bg-secondary: #141418;
+    --bg-card:      #19191f;
+    --bg-elevated:  #1f1f27;
+    --text-primary:   #f0f0f2;
+    --text-secondary: #c7c7d1;
+    --text-muted:     #8b8b9a;
+    --text-faint:     #65657a;
+    --accent:  #4d8eff;
+    --success: #34d399;
+    --danger:  #f87171;
+    --warn:    #fbbf24;
+    --purple:  #a78bfa;
+    --accent-glow:  rgba(77, 142, 255, 0.18);
+    --success-glow: rgba(52, 211, 153, 0.15);
+    --danger-glow:  rgba(248, 113, 113, 0.15);
+    --warn-glow:    rgba(251, 191, 36, 0.14);
+    --border:       rgba(255, 255, 255, 0.07);
+    --border-light: rgba(255, 255, 255, 0.12);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', ui-monospace, monospace;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.35), 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
   }
-  h1 { color: #4d8eff; font-size: 1.8rem; margin-bottom: 0.25rem; }
-  h2 { color: #a1a1aa; font-size: 1.1rem; font-weight: normal;
-        margin-top: 2.5rem; margin-bottom: 0.5rem; }
-  .subtitle { color: #71717a; font-size: 0.9rem; margin-bottom: 2rem; }
-  .chart { width: 100%; max-width: 820px; height: 360px; margin: 0.5rem 0; }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-base);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1.6;
+    min-height: 100vh;
+    /* Soft radial aura — rhymes with presentation viewport */
+    background-color: var(--bg-base);
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% 0%, rgba(77, 142, 255, 0.055) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 35% at 85% 100%, rgba(167, 139, 250, 0.035) 0%, transparent 60%);
+    background-attachment: fixed;
+    font-feature-settings: 'ss01' 1, 'cv11' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 3.5rem 4rem 4rem;
+  }
+
+  /* ── Header ───────────────────────────────────────────────── */
+  .report-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 2rem;
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 0.65rem;
+    opacity: 0.9;
+  }
+  h1 {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 2.85rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.12;
+    margin: 0 0 0.5rem 0;
+    /* Subtle blue→purple gradient on the title, matching title slide */
+    background: linear-gradient(135deg, #4d8eff 0%, #a78bfa 55%, #4d8eff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  .render-meta {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-faint);
+    text-align: right;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  /* ── H2 Section Titles — accent-underline sweep, matches slides ── */
+  h2 {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+    line-height: 1.3;
+    margin: 3rem 0 1rem 0;
+    padding-bottom: 0.55rem;
+    background-image: linear-gradient(to right, var(--accent), transparent 35%);
+    background-size: 100% 2px;
+    background-position: bottom left;
+    background-repeat: no-repeat;
+  }
+
+  /* Opening H2 doesn't need the huge top margin after the header */
+  h2:first-of-type { margin-top: 2rem; }
+
+  p { margin: 0.5rem 0 0.9rem; color: var(--text-secondary); }
+
+  /* ── Sibling companion link ──────────────────────────────── */
+  .sibling-note {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(77, 142, 255, 0.04) 100%);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.4rem;
+    margin: 0 0 2rem 0;
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-card);
+  }
+  .sibling-note b { color: var(--text-primary); font-weight: 600; }
+  .sibling-note a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    transition: border-color 200ms ease;
+  }
+  .sibling-note a:hover { border-bottom-color: var(--accent); }
+
+  /* ── Stat cards — wide grid, accent glow on top edge ─────── */
   .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1rem;
-    margin: 1.5rem 0;
+    margin: 1.5rem 0 2.5rem 0;
   }
   .stat {
-    background: #141418;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 1rem;
+    position: relative;
+    background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.65rem;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
   }
-  .stat-value { font-size: 1.9rem; color: #4d8eff; }
-  .stat-label { font-size: 0.8rem; color: #71717a;
-                 text-transform: uppercase; letter-spacing: 0.05em; }
-  .example {
-    background: #141418;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    font-size: 0.85rem;
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
   }
-  .pass { border-left: 3px solid #22c55e; }
-  .fail { border-left: 3px solid #ef4444; }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 0.5rem;
+  }
+
+  /* ── Charts ──────────────────────────────────────────────── */
+  .chart-frame {
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.25rem 0.75rem;
+    margin: 0.75rem 0 1.5rem;
+    box-shadow: var(--shadow-card);
+  }
+  .chart {
+    width: 100%;
+    max-width: 100%;
+    height: 420px;
+    margin: 0;
+  }
+  .chart-hint {
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    margin: -0.4rem 0 0.7rem;
+  }
+
+  /* ── Callouts — the sparse-reward math explanation card ──── */
   .callout {
-    background: #141418;
-    border: 1px solid #27272a;
-    border-left: 3px solid #f59e0b;
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin: 0.5rem 0 1rem 0;
-    font-size: 0.9rem;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(251, 191, 36, 0.035) 100%);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--radius-md);
+    padding: 1.4rem 1.65rem;
+    margin: 0.75rem 0 1.75rem;
+    font-size: 1.1rem;
+    line-height: 1.65;
+    box-shadow: var(--shadow-card);
+  }
+  .callout p { margin: 0.45rem 0; color: var(--text-secondary); }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout b { color: var(--text-primary); font-weight: 600; }
+  .callout i { color: var(--purple); font-style: italic; }
+  .math {
+    font-family: var(--font-mono);
+    background: var(--bg-base);
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.92em;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+
+  /* ── Example code cards (fixes) ──────────────────────────── */
+  .example-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 1.25rem;
+    margin: 1rem 0;
+  }
+  .example {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    margin: 0;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .pass {
+    border-left: 3px solid var(--success);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(52, 211, 153, 0.035) 100%);
+  }
+  .fail {
+    border-left: 3px solid var(--danger);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(248, 113, 113, 0.035) 100%);
+  }
+  pre {
+    margin: 0.7rem 0 0;
+    white-space: pre-wrap;
+    font-family: var(--font-mono);
+    font-size: 0.98rem;
     line-height: 1.55;
+    color: var(--text-secondary);
+    font-feature-settings: 'zero' 1;
   }
-  .callout p { margin: 0.35rem 0; color: #d4d4d8; }
-  .callout b { color: #e4e4e7; }
-  .math { background: #09090b; padding: 0.15rem 0.4rem;
-           border-radius: 4px; font-size: 0.92rem; }
-  .sibling-note {
-    background: #141418;
-    border: 1px solid #27272a;
-    border-left: 3px solid #4d8eff;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin: 0 0 1.5rem 0;
-    font-size: 0.85rem;
-    color: #d4d4d8;
+  .label {
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
   }
-  pre { margin: 0.5rem 0; white-space: pre-wrap; color: #a1a1aa; }
-  .label { color: #71717a; font-size: 0.75rem; text-transform: uppercase;
-            letter-spacing: 0.05em; }
-  footer { color: #52525b; font-size: 0.75rem; margin-top: 3rem;
-            padding-top: 1rem; border-top: 1px solid #27272a; }
+  .pass .label { color: var(--success); }
+  .fail .label { color: var(--danger); }
+
+  /* ── Footer ──────────────────────────────────────────────── */
+  footer {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    margin-top: 4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .container { padding: 2.5rem 2rem 3rem; }
+    .report-header { grid-template-columns: 1fr; }
+    .render-meta { text-align: left; }
+    h1 { font-size: 2.2rem; }
+  }
 </style>
 </head>
 <body>
+<div class="container">
 
-<h1>RLVR — GRPO Training Report · Run 1 · G=4 · +1 task</h1>
-<div class="subtitle">Model: allenai/OLMo-2-1124-7B-Instruct · Rendered 2026-04-17 10:11</div>
+<header class="report-header">
+  <div>
+    <div class="eyebrow">RLVR · GRPO Training</div>
+    <h1>RLVR — GRPO Training Report · Run 1 · G=4 · +1 task</h1>
+    <div class="subtitle">Model: allenai/OLMo-2-1124-7B-Instruct</div>
+  </div>
+  <div class="render-meta">Rendered 2026-04-17 10:26</div>
+</header>
 
 
 <div class="sibling-note">
   <b>Companion report:</b>
-  <a href="grpo_report_run2_ngen8.html" style="color:#4d8eff">Run 2 · G=8 · −1 task</a>
+  <a href="grpo_report_run2_ngen8.html">Run 2 · G=8 · −1 task</a>
   — same baseline, different GRPO configuration. Read both to see why low-baseline
   RL sits close to the noise floor.
 </div>
@@ -96,6 +345,71 @@
 <div class="stat"><div class="stat-value" style="color:#a1a1aa">62.3m</div><div class="stat-label">Wall time</div></div>
 </div>
 
+
+<h2>From reward to weight update — the GRPO mechanic</h2>
+<div class="callout" style="border-left-color: var(--accent); background: linear-gradient(135deg, var(--bg-card) 0%, rgba(77, 142, 255, 0.04) 100%);">
+  <p>
+    How does a batch of 1/0 rewards actually become a gradient step on the
+    LoRA weights? Four stages — this is GRPO's whole trick.
+  </p>
+
+  <p>
+    <b>1. Group-relative advantage.</b> Each prompt produces <i>G</i> completions,
+    the verifier scores each with reward <span class="math">r<sub>i</sub> ∈ {0, 1}</span>.
+    Normalize within the group:
+  </p>
+  <p style="text-align:center;">
+    <span class="math">A<sub>i</sub> = (r<sub>i</sub> − μ<sub>group</sub>) / σ<sub>group</sub></span>
+  </p>
+  <p>
+    Example — rewards <span class="math">[1, 0, 1, 0]</span>: μ = 0.5, σ ≈ 0.577,
+    so advantages ≈ <span class="math">[+0.87, −0.87, +0.87, −0.87]</span>.
+    The group's own mean <i>is</i> the baseline — no value/critic network.
+    When all four rewards are 0, σ = 0 and every advantage is 0 — which is
+    exactly the zero-reward-group case the next section is about.
+  </p>
+
+  <p>
+    <b>2. PPO-clipped policy-gradient loss.</b> For every token
+    <span class="math">t</span> in completion <span class="math">i</span>,
+    take the importance ratio against the pre-step policy:
+  </p>
+  <p style="text-align:center;">
+    <span class="math">ρ<sub>t</sub> = π<sub>θ</sub>(tok<sub>t</sub>) / π<sub>θ<sub>old</sub></sub>(tok<sub>t</sub>)</span>
+  </p>
+  <p style="text-align:center;">
+    <span class="math">L<sub>i,t</sub><sup>policy</sup> = −min( ρ<sub>t</sub> · A<sub>i</sub>,&nbsp; clip(ρ<sub>t</sub>, 1−ε, 1+ε) · A<sub>i</sub> )</span>
+  </p>
+  <p>
+    Tokens in passing completions get their probability pushed up; tokens
+    in failing completions get pushed down — scaled by the advantage. The
+    clip caps how far a single step can move.
+  </p>
+
+  <p>
+    <b>3. KL anchor to the reference model.</b> Add a penalty for drifting
+    from the frozen base OLMo (β = 0.05 in <span class="math">train.py</span>):
+  </p>
+  <p style="text-align:center;">
+    <span class="math">L<sub>total</sub> = L<sup>policy</sup> + β · KL(π<sub>θ</sub> ‖ π<sub>ref</sub>)</span>
+  </p>
+  <p>
+    This is what the <i>KL divergence</i> chart below tracks — low and
+    stable means the policy is learning without running away from the base
+    distribution.
+  </p>
+
+  <p style="margin-bottom: 0;">
+    <b>4. AdamW step on LoRA adapters only.</b> Backprop
+    <span class="math">L<sub>total</sub></span>, but only the LoRA adapters on
+    <span class="math">q/k/v/o/gate/up/down_proj</span> have
+    <span class="math">requires_grad=True</span> (≈0.3% of parameters).
+    The 7B base weights stay frozen. So one optimization step is:
+    <i>4 prompts × G completions</i> → verifier rewards → group-relative
+    advantages → clipped PG loss + KL → one AdamW update on the LoRA
+    matrices. Repeat 200 times.
+  </p>
+</div>
 
 <h2>Why the absolute gain is modest: sparse rewards at low baseline</h2>
 <div class="callout">
@@ -128,29 +442,29 @@
 
 <script>
 const PLOT = {
-  paper_bgcolor: '#09090b',
-  plot_bgcolor: '#141418',
-  font: { color: '#a1a1aa', family: 'JetBrains Mono, monospace', size: 12 },
-  xaxis: { gridcolor: '#27272a' },
-  yaxis: { gridcolor: '#27272a' },
-  margin: { l: 60, r: 20, t: 20, b: 50 },
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(20,20,24,0.45)',
+  font: { color: '#c7c7d1', family: 'JetBrains Mono, ui-monospace, monospace', size: 15 },
+  xaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)', linecolor: 'rgba(255,255,255,0.12)', tickfont: { size: 14 } },
+  yaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)', linecolor: 'rgba(255,255,255,0.12)', tickfont: { size: 14 } },
+  margin: { l: 78, r: 28, t: 28, b: 62 },
   showlegend: true,
-  legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#a1a1aa' } },
+  legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#c7c7d1', size: 14 } },
 };
 </script>
 
 
 <h2>Pass@1 on held-out test set: before vs. after GRPO</h2>
-<div id="passat1-chart" class="chart"></div>
+<div class="chart-frame"><div id="passat1-chart" class="chart"></div></div>
 <script>
-Plotly.newPlot('passat1-chart', [{x: ['Baseline', 'Post-RLVR'], y: [2.72, 3.11], type: 'bar', marker: {color: ['#4d8eff', '#22c55e']}, text: ['2.7%', '3.1%'], textposition: 'outside', textfont: {color: '#e4e4e7', size: 16}}],
+Plotly.newPlot('passat1-chart', [{x: ['Baseline', 'Post-RLVR'], y: [2.72, 3.11], type: 'bar', marker: {color: ['#4d8eff', '#22c55e']}, text: ['2.7%', '3.1%'], textposition: 'outside', textfont: {color: '#e4e4e7', size: 18}}],
   {...PLOT, showlegend: false,
     yaxis: {...PLOT.yaxis, title: 'pass@1 (%)', range: [0, 100]}},
   {displayModeBar: false, responsive: true});
 </script>
 
 <h2>Average reward (fraction of generations passing tests)</h2>
-<div id="reward-chart" class="chart"></div>
+<div class="chart-frame"><div id="reward-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('reward-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200], y: [0.075, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.125, 0.025, 0.0, 0.0, 0.0, 0.1, 0.0, 0.25, 0.0, 0.025, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.0, 0.15, 0.0, 0.05, 0.025, 0.0, 0.025, 0.0, 0.025, 0.1, 0.0, 0.05, 0.05, 0.0], type: 'scatter', mode: 'lines+markers', name: 'Per-log reward', line: {color: '#4d8eff', width: 2}, marker: {size: 5, color: '#4d8eff'}, opacity: 0.55}, {x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200], y: [0.075, 0.0375, 0.024999999999999998, 0.01875, 0.015, 0.0, 0.0, 0.0, 0.025, 0.03, 0.03, 0.03, 0.03, 0.025, 0.02, 0.06999999999999999, 0.06999999999999999, 0.075, 0.05500000000000001, 0.05500000000000001, 0.005, 0.005, 0.0, 0.0, 0.0, 0.01, 0.01, 0.04, 0.04, 0.05, 0.045, 0.045, 0.02, 0.02, 0.015000000000000003, 0.030000000000000006, 0.030000000000000006, 0.034999999999999996, 0.045, 0.04], type: 'scatter', mode: 'lines', name: 'Rolling mean (5)', line: {color: '#22c55e', width: 3}}],
   {...PLOT, xaxis: {...PLOT.xaxis, title: 'Training step'},
@@ -159,11 +473,11 @@ Plotly.newPlot('reward-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 
 </script>
 
 <h2>KL divergence from reference policy</h2>
-<p style="color:#a1a1aa;margin-top:-0.5rem;font-size:0.85rem">
+<p class="chart-hint">
   Low = the trained policy stays close to the reference model. If this
   explodes, the model has drifted and outputs will degrade.
 </p>
-<div id="kl-chart" class="chart"></div>
+<div class="chart-frame"><div id="kl-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('kl-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200], y: [0.0002066195556835737, 0.0002760255811153911, 0.00033509263666928744, 0.0002971852525661234, 0.000377632760501001, 0.0003317869013699237, 0.0003373227424162906, 0.0002726439139223658, 0.0003891975575243123, 0.000335413365974091, 0.0003184283428709023, 0.0005651777682942338, 0.0002876845566788688, 0.0002466731824824819, 0.0003677265980513766, 0.0005797570483991876, 0.00037883208424318584, 0.0003451885870163096, 0.0002522213602787815, 0.0004266538773663342, 0.00022379484107659664, 0.00034471264225430784, 0.00031638485233997926, 0.00034646496424102225, 0.0005738856125390157, 0.0006363406020682306, 0.0004169410043687094, 0.00030561355451936835, 0.00036138230170763564, 0.0006934994031325914, 0.00046840366849210113, 0.000662667764845537, 0.0005074157088529319, 0.0004845352508709766, 0.0004940957005601376, 0.0005430517681816127, 0.0003670063946628943, 0.0009112836196436547, 0.0003996061350335367, 0.000448596641945187], type: 'scatter', mode: 'lines+markers', name: 'KL', line: {color: '#f59e0b', width: 2}, marker: {size: 5}}],
   {...PLOT, showlegend: false,
@@ -173,34 +487,35 @@ Plotly.newPlot('kl-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 
 </script>
 
 <h2>Policy loss and gradient norm</h2>
-<div id="loss-chart" class="chart"></div>
+<div class="chart-frame"><div id="loss-chart" class="chart"></div></div>
 <script>
 Plotly.newPlot('loss-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200], y: [-0.01458546370267868, 1.2426507601048797e-05, 1.6149903240147977e-05, 1.5451778017450125e-05, 1.957933563971892e-05, 1.6296411922667174e-05, 1.743139873724431e-05, 1.5891333168838175e-05, 0.034131559729576114, 0.003941790387034416, 1.616680674487725e-05, 2.52372061368078e-05, 1.5461181465070695e-05, 0.009345416724681855, 1.6890352708287536e-05, -0.04998178780078888, 1.9007276569027455e-05, 0.009211569279432296, 1.2799903925042599e-05, 2.1298736101016402e-05, 1.1058982636313885e-05, 1.808384113246575e-05, 1.5295376942958683e-05, 1.8283493409398945e-05, 2.366025873925537e-05, 0.0033299468457698824, 2.3185690224636346e-05, 1.449234550818801e-05, 1.938138739205897e-05, 0.03537157475948334, 0.04592047333717346, 3.525387146510184e-05, 2.550177450757474e-05, 2.3561654961667956e-05, 0.014221644401550293, 2.6458289357833565e-05, 1.8036439723800867e-05, -0.019196800887584686, -0.050098633766174315, 1.8086649652104826e-05], type: 'scatter', mode: 'lines', name: 'Loss', line: {color: '#4d8eff', width: 2}, yaxis: 'y'}, {x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200], y: [0.0081787109375, 0.00188446044921875, 0.0010986328125, 0.00299072265625, 0.002838134765625, 0.004364013671875, 0.002166748046875, 0.00201416015625, 0.002166748046875, 0.0023193359375, 0.00148773193359375, 0.0037994384765625, 0.007110595703125, 0.003509521484375, 0.0033416748046875, 0.00836181640625, 0.004486083984375, 0.003662109375, 0.001922607421875, 0.00433349609375, 0.0020751953125, 0.00579833984375, 0.0035552978515625, 0.001983642578125, 0.00116729736328125, 0.0028533935546875, 0.00677490234375, 0.0057373046875, 0.0050048828125, 0.013427734375, 0.0081787109375, 0.0030059814453125, 0.01324462890625, 0.00592041015625, 0.00152587890625, 0.003936767578125, 0.0036163330078125, 0.0030517578125, 0.0021514892578125, 0.003692626953125], type: 'scatter', mode: 'lines', name: 'Grad norm', line: {color: '#ef4444', width: 2, dash: 'dot'}, yaxis: 'y2'}],
   {...PLOT,
     xaxis: {...PLOT.xaxis, title: 'Training step'},
     yaxis: {...PLOT.yaxis, title: 'Loss', side: 'left'},
-    yaxis2: {gridcolor: '#27272a', title: 'Grad norm',
+    yaxis2: {gridcolor: 'rgba(255,255,255,0.06)', title: 'Grad norm',
              overlaying: 'y', side: 'right', color: '#ef4444'}},
   {displayModeBar: false, responsive: true});
 </script>
 
 <h2>Per-problem flip analysis (257 common problems)</h2>
-<p style="color:#a1a1aa;margin-top:-0.5rem;font-size:0.85rem">
+<p class="chart-hint">
   What happened at the problem level, not just in aggregate. Big green bar
   is the fix rate — how many previously-failing problems the RLVR-trained
   model now solves.
 </p>
-<div id="flip-chart" class="chart"></div>
+<div class="chart-frame"><div id="flip-chart" class="chart"></div></div>
 <script>
-Plotly.newPlot('flip-chart', [{x: ["Fixed (fail\u2192pass)", "Regressed (pass\u2192fail)", "Still passing", "Still failing"], y: [1, 0, 7, 249], type: 'bar', marker: {color: ["#22c55e", "#ef4444", "#4d8eff", "#a1a1aa"]}, text: [1, 0, 7, 249], textposition: 'outside', textfont: {color: '#e4e4e7', size: 14}}],
+Plotly.newPlot('flip-chart', [{x: ["Fixed (fail\u2192pass)", "Regressed (pass\u2192fail)", "Still passing", "Still failing"], y: [1, 0, 7, 249], type: 'bar', marker: {color: ["#22c55e", "#ef4444", "#4d8eff", "#a1a1aa"]}, text: [1, 0, 7, 249], textposition: 'outside', textfont: {color: '#e4e4e7', size: 16}}],
   {...PLOT, showlegend: false,
     yaxis: {...PLOT.yaxis, title: 'Problems'}},
   {displayModeBar: false, responsive: true});
 </script>
 <h2>Example fixes — problems the model learned to solve</h2>
-<div class="example fail">
-  <div class="label">Task 92 — baseline FAIL</div>
-  <pre>def is_undulating(num):
+<div class="example-pair">
+  <div class="example fail">
+    <div class="label">Task 92 — baseline FAIL</div>
+    <pre>def is_undulating(num):
     # Function to check if a number is undulating
     # An undulating number is one where the difference between consecutive digits is either 1 or 0
     # For simplicity, this function assumes the input is a single-digit number, as undulating typically applies to sequences of digits
@@ -212,10 +527,10 @@ Plotly.newPlot('flip-chart', [{x: ["Fixed (fail\u2192pass)", "Regressed (pass\u2
             if abs(int(str(num))[i] - int(str(num)[i + 1])) not in [0, 1]:
                 return False
         return True</pre>
-</div>
-<div class="example pass">
-  <div class="label">Task 92 — post-RLVR PASS</div>
-  <pre>def is_undulating(num):
+  </div>
+  <div class="example pass">
+    <div class="label">Task 92 — post-RLVR PASS</div>
+    <pre>def is_undulating(num):
     # Function to check if a number is undulating
     # An undulating number is one where the differences between consecutive digits are either 1 or 0
     # For simplicity, we assume the input is a non-negative integer
@@ -229,13 +544,14 @@ Plotly.newPlot('flip-chart', [{x: ["Fixed (fail\u2192pass)", "Regressed (pass\u2
             return False
 
     return True</pre>
+  </div>
 </div>
-<br>
 
 <footer>
   Generated by make_report.py from output/metrics.jsonl +
   results/baseline.json + results/post_rlvr.json
 </footer>
 
+</div>
 </body>
 </html>
