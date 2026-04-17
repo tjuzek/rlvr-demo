@@ -18,8 +18,8 @@ Usage:
         --baseline results/baseline.json --post results/post_rlvr.json \
         --out results/grpo_report.html
 
-AI-assisted code — generated with Claude Code (Anthropic).
-See README.md for full attribution. Maintainer: Tom Juzek <tjuzek@fsu.edu>.
+Authored by Anthropic's Claude Opus 4.7 via the Claude Code CLI.
+See README.md for full attribution. Maintainer: Tommie Juzek <tjuzek@fsu.edu>.
 """
 
 from __future__ import annotations

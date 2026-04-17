@@ -70,13 +70,30 @@ python train.py --model meta-llama/Llama-3.2-3B-Instruct
 
 ## AI Attribution
 
-This repository is **AI-assisted / AI-driven code**, generated in Claude Code
-sessions with Anthropic's Claude (Opus 4.6 for the initial pipeline —
-dataset prep, verifier, benchmark, GRPO training script, demo, guide;
-Opus 4.7 for the metrics callback, `make_report.py`, and the themed HTML
-report).
+**The overwhelming majority of the code in this repository was authored by
+Anthropic's Claude** via the Claude Code CLI. This is genuinely
+AI-driven work — not just "AI-assisted polishing of human code." Credit
+where it's due:
 
-I (Tom Juzek, `tjuzek@fsu.edu`) am the sole human responsible for this
-repository. I reviewed, tested, and executed the code; any error, bug, or
-unexpected behavior is mine to own. The AI is a tool — the work and the
-accountability for it are mine.
+- **Claude Opus 4.6** designed and wrote the initial pipeline end-to-end:
+  the MBPP dataset formatting (`download_dataset.py`), the sandboxed code
+  verifier (`verifier.py`), the benchmark harness (`benchmark.py`), the
+  GRPO + LoRA training loop (`train.py`), the live expert-iteration demo
+  (`demo_train.py`), the deterministic corruption generator
+  (`create_corruptions.py`), the `run_all.sh` orchestration script, and
+  the step-by-step `GUIDE.md`.
+- **Claude Opus 4.7** added the `MetricsCallback` that streams GRPO
+  metrics to disk, wrote `make_report.py` and its dark-theme Plotly
+  HTML template, repaired the `run_all.sh` push step, and drove the
+  GitHub + Lambda setup for this proof-of-concept run.
+
+I (Tommie Juzek, `tjuzek@fsu.edu`) directed the work — I picked the
+research question, set the scope, reviewed and tested the output, made
+the judgment calls, and am the one running the pipeline. But the code
+itself was written by Claude, and the design choices (GRPO vs. expert
+iteration, the chart taxonomy, the callback architecture, the defensive
+parsing strategy) were Claude's too.
+
+**Accountability is mine alone.** If anything in this repository is
+incorrect, misleading, or causes harm, that's on me; the AI is a tool,
+not a responsible party.
