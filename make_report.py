@@ -179,7 +179,8 @@ def render_stat_cards(baseline: dict | None, post: dict | None,
 
 
 def render_sparse_reward_note(baseline: dict | None, post: dict | None,
-                              metrics_rows: list[dict]) -> str:
+                              metrics_rows: list[dict],
+                              num_gen_override: int | None = None) -> str:
     """Callout explaining why a low-baseline GRPO run shows modest gains.
 
     At a low baseline pass rate p, the probability a group of G completions
@@ -196,14 +197,14 @@ def render_sparse_reward_note(baseline: dict | None, post: dict | None,
         return ""
     p = b_acc / 100.0
 
-    # Pull num_generations from the training config if we can find it
-    cfg_path = ROOT / "output" / "training_config.json"
-    num_gen = None
-    if cfg_path.exists():
-        try:
-            num_gen = json.loads(cfg_path.read_text()).get("num_generations")
-        except json.JSONDecodeError:
-            pass
+    num_gen = num_gen_override
+    if num_gen is None:
+        cfg_path = ROOT / "output" / "training_config.json"
+        if cfg_path.exists():
+            try:
+                num_gen = json.loads(cfg_path.read_text()).get("num_generations")
+            except json.JSONDecodeError:
+                pass
     if num_gen is None:
         num_gen = 4  # sane fallback
 
@@ -400,10 +401,30 @@ def render_flip_examples(baseline: dict | None, post: dict | None,
     return "<h2>Example fixes — problems the model learned to solve</h2>" + "".join(blocks)
 
 
+def render_sibling_note(sibling_label: str | None,
+                        sibling_href: str | None) -> str:
+    if not sibling_label or not sibling_href:
+        return ""
+    return f"""
+<div class="sibling-note">
+  <b>Companion report:</b>
+  <a href="{escape(sibling_href)}" style="color:{ACCENT}">{escape(sibling_label)}</a>
+  — same baseline, different GRPO configuration. Read both to see why low-baseline
+  RL sits close to the noise floor.
+</div>"""
+
+
 def render_html(metrics_rows: list[dict], baseline: dict | None,
-                post: dict | None, model_name: str) -> str:
+                post: dict | None, model_name: str,
+                label: str | None = None,
+                num_gen_override: int | None = None,
+                sibling_label: str | None = None,
+                sibling_href: str | None = None) -> str:
     stat_cards = render_stat_cards(baseline, post, metrics_rows)
-    sparse_note = render_sparse_reward_note(baseline, post, metrics_rows)
+    sparse_note = render_sparse_reward_note(
+        baseline, post, metrics_rows, num_gen_override=num_gen_override
+    )
+    sibling_note = render_sibling_note(sibling_label, sibling_href)
     reward = render_reward_chart(metrics_rows)
     passat1 = render_passat1_chart(baseline, post)
     kl = render_kl_chart(metrics_rows)
@@ -482,6 +503,16 @@ def render_html(metrics_rows: list[dict], baseline: dict | None,
   .callout b {{ color: #e4e4e7; }}
   .math {{ background: #09090b; padding: 0.15rem 0.4rem;
            border-radius: 4px; font-size: 0.92rem; }}
+  .sibling-note {{
+    background: #141418;
+    border: 1px solid #27272a;
+    border-left: 3px solid {ACCENT};
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 0 0 1.5rem 0;
+    font-size: 0.85rem;
+    color: #d4d4d8;
+  }}
   pre {{ margin: 0.5rem 0; white-space: pre-wrap; color: {MUTED}; }}
   .label {{ color: #71717a; font-size: 0.75rem; text-transform: uppercase;
             letter-spacing: 0.05em; }}
@@ -491,8 +522,10 @@ def render_html(metrics_rows: list[dict], baseline: dict | None,
 </head>
 <body>
 
-<h1>RLVR — GRPO Training Report</h1>
+<h1>RLVR — GRPO Training Report{f" · {escape(label)}" if label else ""}</h1>
 <div class="subtitle">Model: {escape(model_name)} · Rendered {ts}</div>
+
+{sibling_note}
 
 {body_warning}
 
@@ -533,6 +566,14 @@ def main():
                         default=ROOT / "results" / "post_rlvr.json")
     parser.add_argument("--out", type=Path,
                         default=ROOT / "results" / "grpo_report.html")
+    parser.add_argument("--label", type=str, default=None,
+                        help="Run label shown in the report title (e.g. 'Run 1 · G=4')")
+    parser.add_argument("--num-generations", type=int, default=None,
+                        help="Override G for the sparse-reward callout")
+    parser.add_argument("--sibling-label", type=str, default=None,
+                        help="Label for the companion-report link")
+    parser.add_argument("--sibling-href", type=str, default=None,
+                        help="Relative href for the companion-report link")
     args = parser.parse_args()
 
     metrics_rows = load_jsonl(args.metrics)
@@ -541,7 +582,13 @@ def main():
 
     model_name = (baseline or post or {}).get("model", "unknown")
 
-    html = render_html(metrics_rows, baseline, post, model_name)
+    html = render_html(
+        metrics_rows, baseline, post, model_name,
+        label=args.label,
+        num_gen_override=args.num_generations,
+        sibling_label=args.sibling_label,
+        sibling_href=args.sibling_href,
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(html)
 
