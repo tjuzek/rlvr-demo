@@ -253,6 +253,8 @@ def main():
     )
 
     # ---- GRPO config ----
+    # TRL >=1.0 moved model_init_kwargs onto GRPOConfig (previously it was a
+    # GRPOTrainer kwarg). transformers >=5.0 renamed torch_dtype to dtype.
     training_args = GRPOConfig(
         output_dir=str(output_dir),
         num_generations=num_generations,
@@ -272,6 +274,10 @@ def main():
         # Generation config
         temperature=0.7,
         top_p=0.95,
+        model_init_kwargs={
+            "quantization_config": quantization_config,
+            "dtype": torch.bfloat16,
+        },
     )
 
     # ---- Build reward function ----
@@ -287,10 +293,6 @@ def main():
         reward_funcs=reward_fn,
         peft_config=peft_config,
         callbacks=[metrics_callback],
-        model_init_kwargs={
-            "quantization_config": quantization_config,
-            "torch_dtype": torch.bfloat16,
-        },
     )
 
     print(f"  Model loaded on: {trainer.model.device}")
