@@ -178,6 +178,70 @@ def render_stat_cards(baseline: dict | None, post: dict | None,
     )
 
 
+def render_sparse_reward_note(baseline: dict | None, post: dict | None,
+                              metrics_rows: list[dict]) -> str:
+    """Callout explaining why a low-baseline GRPO run shows modest gains.
+
+    At a low baseline pass rate p, the probability a group of G completions
+    is all-zero is (1 - p)^G. All-zero groups have zero reward variance, so
+    GRPO's advantage is zero, so the gradient contribution is zero — the
+    model learns from only the minority of groups that contain at least one
+    passing sample. This is the load-bearing caveat for interpreting the
+    number, and it's worth showing the audience directly.
+    """
+    if not baseline:
+        return ""
+    b_acc = baseline.get("accuracy")
+    if b_acc is None or b_acc <= 0:
+        return ""
+    p = b_acc / 100.0
+
+    # Pull num_generations from the training config if we can find it
+    cfg_path = ROOT / "output" / "training_config.json"
+    num_gen = None
+    if cfg_path.exists():
+        try:
+            num_gen = json.loads(cfg_path.read_text()).get("num_generations")
+        except json.JSONDecodeError:
+            pass
+    if num_gen is None:
+        num_gen = 4  # sane fallback
+
+    all_zero = (1 - p) ** num_gen * 100
+    all_zero_8 = (1 - p) ** 8 * 100
+    all_zero_16 = (1 - p) ** 16 * 100
+
+    return f"""
+<h2>Why the absolute gain is modest: sparse rewards at low baseline</h2>
+<div class="callout">
+  <p>
+    The baseline model solves only <b style="color:{ACCENT}">{b_acc:.1f}%</b> of
+    problems. For GRPO to learn, each group of <i>G</i> completions needs
+    <b>at least one passing sample</b> — otherwise every sample gets reward 0,
+    the within-group advantage is 0, and the gradient contribution is 0.
+  </p>
+  <p>
+    With <b>G = {num_gen}</b> generations per prompt and baseline pass rate
+    <i>p</i> = {p:.3f}, the fraction of groups that are entirely zero-reward is
+    <span class="math">(1 − p)<sup>G</sup> = (1 − {p:.3f})<sup>{num_gen}</sup>
+    ≈ <b style="color:{DANGER}">{all_zero:.1f}%</b></span>.
+  </p>
+  <p>
+    In other words: <b>~{all_zero:.0f}% of optimizer steps carry no learning
+    signal at all</b>. Only the remaining {100 - all_zero:.0f}% contribute
+    gradient. The run is doing real RL, but on a fraction of the compute it
+    looks like it's doing.
+  </p>
+  <p style="margin-bottom: 0;">
+    Counter-moves: <b>more generations per prompt</b>
+    (G = 8 → {all_zero_8:.0f}% zero-reward · G = 16 → {all_zero_16:.0f}%),
+    <b>filter training set</b> to problems the base model solves ≥ sometimes
+    (cheapest, biggest lift), or <b>warm-start</b> with SFT to raise the
+    baseline first. Tulu 3 does all three.
+  </p>
+</div>"""
+
+
 def render_reward_chart(rows: list[dict]) -> str:
     xs, ys = series(rows, "reward")
     if len(xs) < 3:
@@ -339,6 +403,7 @@ def render_flip_examples(baseline: dict | None, post: dict | None,
 def render_html(metrics_rows: list[dict], baseline: dict | None,
                 post: dict | None, model_name: str) -> str:
     stat_cards = render_stat_cards(baseline, post, metrics_rows)
+    sparse_note = render_sparse_reward_note(baseline, post, metrics_rows)
     reward = render_reward_chart(metrics_rows)
     passat1 = render_passat1_chart(baseline, post)
     kl = render_kl_chart(metrics_rows)
@@ -403,6 +468,20 @@ def render_html(metrics_rows: list[dict], baseline: dict | None,
   }}
   .pass {{ border-left: 3px solid {SUCCESS}; }}
   .fail {{ border-left: 3px solid {DANGER}; }}
+  .callout {{
+    background: #141418;
+    border: 1px solid #27272a;
+    border-left: 3px solid {WARN};
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 0.5rem 0 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }}
+  .callout p {{ margin: 0.35rem 0; color: #d4d4d8; }}
+  .callout b {{ color: #e4e4e7; }}
+  .math {{ background: #09090b; padding: 0.15rem 0.4rem;
+           border-radius: 4px; font-size: 0.92rem; }}
   pre {{ margin: 0.5rem 0; white-space: pre-wrap; color: {MUTED}; }}
   .label {{ color: #71717a; font-size: 0.75rem; text-transform: uppercase;
             letter-spacing: 0.05em; }}
@@ -421,12 +500,14 @@ def render_html(metrics_rows: list[dict], baseline: dict | None,
 {stat_cards}
 </div>
 
+{sparse_note}
+
 <script>
 const PLOT = {PLOT_LAYOUT_JS};
 </script>
 
-{reward}
 {passat1}
+{reward}
 {kl}
 {loss}
 {flip_chart}
