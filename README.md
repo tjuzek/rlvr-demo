@@ -1,49 +1,55 @@
 # rlvr-demo
 
-Two RLVR experiments from the SC-AI Seminar talk on
+Three RLVR experiments from follow-up work to the SC-AI Seminar talk on
 *Reinforcement Learning from Verifiable Rewards* (Tom & Lan Li,
-April 2026) — the same training recipe applied to two different
-verifiable-reward domains. Same base model, same GRPO + LoRA loop,
-different verifiers and different signals.
+April 2026). The same GRPO + LoRA training recipe, varied along the
+axes that determine whether GRPO has signal to learn from:
+the base model (so: the baseline pass rate), group size `G`,
+and sampling temperature.
 
-| Experiment | Task | Verifier | Base pass@1 | Post-RLVR pass@1 |
-|---|---|---|---:|---:|
-| [`code-rlvr/`](code-rlvr/) | MBPP code generation | Python subprocess, assertions | 2.7% | 3.1% |
-| [`math-rlvr/`](math-rlvr/) | GSM8K math reasoning | Regex + numeric equality | 82.6% | 82.1% |
+| Experiment | Task · Model | G | Base pass@1 | Post-RLVR pass@1 | Δ |
+|---|---|---:|---:|---:|---:|
+| [`code-rlvr/`](code-rlvr/) | MBPP · OLMo-2-7B-Instruct | 4 | 2.7% | 3.1% | +0.4pp |
+| [`math-rlvr/`](math-rlvr/) | GSM8K · OLMo-2-7B-Instruct | 4 | 82.6% | 82.1% | −0.5pp |
+| [`gemma-rlvr/`](gemma-rlvr/) | GSM8K · Gemma-2-2B-IT | 8 | *(pending)* | *(pending)* | *(pending)* |
+
+## The through-line
+
+GRPO's advantage term is reward minus group mean. When every completion
+in a group gets the same reward, that term is zero — the step contributes
+no gradient. So **the fraction of mixed-reward groups** during training
+determines how much signal the run actually carries.
+
+For a baseline pass rate `p` and group size `G`, the dead-group share is
+`p^G + (1-p)^G`:
+
+| Experiment | `p` | `G` | Predicted dead-group share |
+|---|---:|---:|---:|
+| `code-rlvr/` | 0.027 | 4 | 89% |
+| `math-rlvr/` | 0.826 | 4 | 46% |
+| `gemma-rlvr/` | ~0.51 | 8 | **~2%** |
+
+The first two experiments landed on opposite edges of the variance band
+and both came out within noise. `gemma-rlvr/` changes model and group
+size together to land inside it.
 
 ## What to read first
 
-- **[math-rlvr/](math-rlvr/)** — the main experiment, post-talk follow-up.
-  Rerun on a dataset where OLMo-2-Instruct has real signal to improve.
-- **[code-rlvr/](code-rlvr/)** — the original experiment shown during the
-  talk. Interesting as a negative result: RLVR can't rescue a baseline
-  that's near-zero because GRPO has no reward-variance groups to learn from.
+- **[`gemma-rlvr/`](gemma-rlvr/)** — the deliberate variance-band attempt.
+  Smaller base model with mid-band baseline, G=8, temperature 1.0.
+- **[`math-rlvr/`](math-rlvr/)** — same GSM8K verifier with OLMo-2-7B-Instruct.
+  Baseline too high; most groups all-pass. Net Δ within noise.
+- **[`code-rlvr/`](code-rlvr/)** — the original talk demo.
+  Baseline too low; most groups all-fail. Net Δ within noise.
 
 Each subdirectory is self-contained — its own `run_all.sh`,
-`requirements.txt`, `README.md`, and report HTML.
-
-## Why both experiments are here
-
-Both runs show — from opposite sides — that RLVR depends on **reward
-variance inside a group**. GRPO's advantage is zero when all generations
-in a group get the same reward; those groups contribute no gradient.
-
-- On **MBPP** with a 2.7% baseline, `0.973⁴ ≈ 90%` of groups are all-fail.
-- On **GSM8K** with an 82.6% baseline, `0.826⁴ ≈ 47%` of groups are all-pass.
-  (Empirically we saw `frac_reward_zero_std` ≈ 0.6–1.0 in training logs —
-  even higher than the naïve estimate.)
-
-In both regimes the adapter barely moves. RLVR's sweet spot is the middle
-band where enough groups are mixed-reward for GRPO to learn from — which
-is why the Tulu 3 paper targets specific task/model pairings where the
-baseline sits in that window.
-
-Read the two reports together to see both failure modes.
+`requirements.txt`, `README.md`, `RESULTS.md`, and report HTML.
 
 ## Reading order for the reports
 
-1. [`math-rlvr/results/gsm8k_update.html`](math-rlvr/results/gsm8k_update.html) — post-talk update
-2. [`code-rlvr/results/grpo_report.html`](code-rlvr/results/grpo_report.html) — original run
+1. [`gemma-rlvr/results/gemma_gsm8k_report.html`](gemma-rlvr/results/gemma_gsm8k_report.html) — variance-band attempt
+2. [`math-rlvr/results/gsm8k_update.html`](math-rlvr/results/gsm8k_update.html) — OLMo-2 on GSM8K
+3. [`code-rlvr/results/grpo_report.html`](code-rlvr/results/grpo_report.html) — original MBPP run
 
 ## Infrastructure
 
