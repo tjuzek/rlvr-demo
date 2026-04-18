@@ -17,6 +17,10 @@
 #
 set -euo pipefail
 
+# Reduce CUDA fragmentation — needed because per_device_train_batch_size=8
+# with Gemma-2's eager attention + G=8 generations is close to the A10 ceiling.
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
