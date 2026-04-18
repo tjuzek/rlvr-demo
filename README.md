@@ -9,7 +9,7 @@ different verifiers and different signals.
 | Experiment | Task | Verifier | Base pass@1 | Post-RLVR pass@1 |
 |---|---|---|---:|---:|
 | [`code-rlvr/`](code-rlvr/) | MBPP code generation | Python subprocess, assertions | 2.7% | 3.1% |
-| [`math-rlvr/`](math-rlvr/) | GSM8K math reasoning | Regex + numeric equality | *(pending)* | *(pending)* |
+| [`math-rlvr/`](math-rlvr/) | GSM8K math reasoning | Regex + numeric equality | 82.6% | 82.1% |
 
 ## What to read first
 
@@ -24,13 +24,21 @@ Each subdirectory is self-contained — its own `run_all.sh`,
 
 ## Why both experiments are here
 
-The MBPP run showed **why RLVR depends on a non-degenerate baseline**:
-at 2.7% pass rate with 4 generations per group, `(1 − 0.027)⁴ ≈ 90%`
-of GRPO groups are all-zero and contribute no gradient. The math run
-shows what happens when the base model can already solve a healthy
-fraction of problems — the regime where Tulu 3 reported gains.
+Both runs show — from opposite sides — that RLVR depends on **reward
+variance inside a group**. GRPO's advantage is zero when all generations
+in a group get the same reward; those groups contribute no gradient.
 
-Read the two reports together to see the full arc.
+- On **MBPP** with a 2.7% baseline, `0.973⁴ ≈ 90%` of groups are all-fail.
+- On **GSM8K** with an 82.6% baseline, `0.826⁴ ≈ 47%` of groups are all-pass.
+  (Empirically we saw `frac_reward_zero_std` ≈ 0.6–1.0 in training logs —
+  even higher than the naïve estimate.)
+
+In both regimes the adapter barely moves. RLVR's sweet spot is the middle
+band where enough groups are mixed-reward for GRPO to learn from — which
+is why the Tulu 3 paper targets specific task/model pairings where the
+baseline sits in that window.
+
+Read the two reports together to see both failure modes.
 
 ## Reading order for the reports
 

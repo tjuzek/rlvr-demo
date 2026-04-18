@@ -9,11 +9,39 @@ baseline — the regime the Tulu 3 paper targets.
 
 ## Headline numbers
 
-*Pending Lambda run — updated automatically after `bash run_all.sh --push`.*
-
 | | Baseline | Post-RLVR | Δ |
 |---|---:|---:|---:|
-| GSM8K test (1,319) | *TBD* | *TBD* | *TBD* |
+| GSM8K test (1,319) | **82.64%** (1090) | **82.11%** (1083) | **−0.53pp** (−7) |
+
+Under the hood: 200 GRPO steps moved 107 problems (8% of the test set) —
+**50 fail→pass** and **57 pass→fail**. The net is within noise. Training
+reward stayed flat at ~0.89 and KL from the reference policy stayed
+~1e-4, so the adapter barely drifted from the base model.
+
+### Why the delta is ~zero
+
+With an 82.6% baseline and 4 generations per prompt, the chance a group
+of 4 is all-correct is `0.826⁴ ≈ 47%`. GRPO's advantage term is zero
+for groups with zero reward variance — so roughly half of training groups
+contribute no gradient. The training logs confirm this:
+`frac_reward_zero_std` sat at **0.6–1.0** throughout the 200 steps.
+
+This is the mirror of the MBPP failure mode in [`../code-rlvr/`](../code-rlvr/):
+there the baseline was too low (near-zero), so groups were all-fail; here
+it's high enough that groups are often all-pass. RLVR works best on the
+middle band — somewhere around 30–70% pass rate — where GRPO sees enough
+reward variance to learn from. OLMo-2-Instruct on stock GSM8K with 8-shot
+CoT sits above that sweet spot.
+
+### What did change
+
+- 107 individual problems flipped pass/fail
+- Training reward stayed stable (0.87–0.95 across 800 completions)
+- KL divergence from reference: max ~0.001 (extremely low)
+- Loss oscillated around zero, grad norm typically <0.01
+
+So the LoRA adapter did learn *something* — but the net effect on the
+aggregate accuracy metric was indistinguishable from measurement noise.
 
 ## Setup
 
