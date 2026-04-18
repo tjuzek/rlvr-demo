@@ -11,7 +11,7 @@ and sampling temperature.
 |---|---|---:|---:|---:|---:|
 | [`code-rlvr/`](code-rlvr/) | MBPP · OLMo-2-7B-Instruct | 4 | 2.7% | 3.1% | +0.4pp |
 | [`math-rlvr/`](math-rlvr/) | GSM8K · OLMo-2-7B-Instruct | 4 | 82.6% | 82.1% | −0.5pp |
-| [`gemma-rlvr/`](gemma-rlvr/) | GSM8K · Gemma-2-2B-IT | 8 | *(pending)* | *(pending)* | *(pending)* |
+| [`gemma-rlvr/`](gemma-rlvr/) | GSM8K · Gemma-2-2B-IT | 8 | 58.5% | 58.2% | −0.3pp |
 
 ## The through-line
 
@@ -23,20 +23,26 @@ determines how much signal the run actually carries.
 For a baseline pass rate `p` and group size `G`, the dead-group share is
 `p^G + (1-p)^G`:
 
-| Experiment | `p` | `G` | Predicted dead-group share |
-|---|---:|---:|---:|
-| `code-rlvr/` | 0.027 | 4 | 89% |
-| `math-rlvr/` | 0.826 | 4 | 46% |
-| `gemma-rlvr/` | ~0.51 | 8 | **~2%** |
+| Experiment | `p` | `G` | Predicted dead share | Observed `frac_reward_zero_std` |
+|---|---:|---:|---:|---:|
+| `code-rlvr/` | 0.027 | 4 | 89% | *(not logged)* |
+| `math-rlvr/` | 0.826 | 4 | 46% | **~80%** |
+| `gemma-rlvr/` | 0.585 | 8 | 1.4% | **~52%** |
 
-The first two experiments landed on opposite edges of the variance band
-and both came out within noise. `gemma-rlvr/` changes model and group
-size together to land inside it.
+The independence model (`p^G + (1-p)^G`) underestimates zero-variance
+groups — per-prompt difficulty clusters outcomes. Even so, Gemma cut
+zero-variance from OLMo's 80% to 52% (~2.4× more signal per step) and
+still landed within noise. With `lr=5e-6`, `β=0.05`, and 200 steps,
+KL max was **0.0011** — the policy never meaningfully moved. Reward
+variance was necessary but not sufficient; policy update budget is
+the next bottleneck to relax.
 
 ## What to read first
 
 - **[`gemma-rlvr/`](gemma-rlvr/)** — the deliberate variance-band attempt.
-  Smaller base model with mid-band baseline, G=8, temperature 1.0.
+  Smaller base model (58.5% baseline), G=8, temperature 1.0. Cut
+  zero-variance groups by ~1.5×; still within noise. KL stayed ~0.
+  Surfaces the next binding constraint: policy update budget.
 - **[`math-rlvr/`](math-rlvr/)** — same GSM8K verifier with OLMo-2-7B-Instruct.
   Baseline too high; most groups all-pass. Net Δ within noise.
 - **[`code-rlvr/`](code-rlvr/)** — the original talk demo.
