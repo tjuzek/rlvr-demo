@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemma-2-2B RLVR on GSM8K v2 — Unlocked update budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  :root {
+    --bg-base:      #09090b;
+    --bg-primary:   #0c0c0f;
+    --bg-secondary: #141418;
+    --bg-card:      #19191f;
+    --bg-elevated:  #1f1f27;
+    --text-primary:   #f0f0f2;
+    --text-secondary: #c7c7d1;
+    --text-muted:     #8b8b9a;
+    --text-faint:     #65657a;
+    --accent:  #4d8eff;
+    --success: #34d399;
+    --danger:  #f87171;
+    --warn:    #fbbf24;
+    --purple:  #a78bfa;
+    --accent-glow:  rgba(77, 142, 255, 0.18);
+    --success-glow: rgba(52, 211, 153, 0.15);
+    --danger-glow:  rgba(248, 113, 113, 0.15);
+    --warn-glow:    rgba(251, 191, 36, 0.14);
+    --border:       rgba(255, 255, 255, 0.07);
+    --border-light: rgba(255, 255, 255, 0.12);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', ui-monospace, monospace;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow-card: 0 4px 16px -2px rgba(0, 0, 0, 0.35), 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-base);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 20px;
+    line-height: 1.6;
+    min-height: 100vh;
+    /* Soft radial aura — rhymes with presentation viewport */
+    background-color: var(--bg-base);
+    background-image:
+      radial-gradient(ellipse 70% 45% at 50% 0%, rgba(77, 142, 255, 0.055) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 35% at 85% 100%, rgba(167, 139, 250, 0.035) 0%, transparent 60%);
+    background-attachment: fixed;
+    font-feature-settings: 'ss01' 1, 'cv11' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 3.5rem 4rem 4rem;
+  }
+
+  /* ── Header ───────────────────────────────────────────────── */
+  .report-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 2rem;
+    padding-bottom: 1.75rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 0.65rem;
+    opacity: 0.9;
+  }
+  h1 {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 2.85rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.12;
+    margin: 0 0 0.5rem 0;
+    /* Subtle blue→purple gradient on the title, matching title slide */
+    background: linear-gradient(135deg, #4d8eff 0%, #a78bfa 55%, #4d8eff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+  .render-meta {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-faint);
+    text-align: right;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  /* ── H2 Section Titles — accent-underline sweep, matches slides ── */
+  h2 {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+    line-height: 1.3;
+    margin: 3rem 0 1rem 0;
+    padding-bottom: 0.55rem;
+    background-image: linear-gradient(to right, var(--accent), transparent 35%);
+    background-size: 100% 2px;
+    background-position: bottom left;
+    background-repeat: no-repeat;
+  }
+
+  /* Opening H2 doesn't need the huge top margin after the header */
+  h2:first-of-type { margin-top: 2rem; }
+
+  p { margin: 0.5rem 0 0.9rem; color: var(--text-secondary); }
+
+  /* ── Sibling companion link ──────────────────────────────── */
+  .sibling-note {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(77, 142, 255, 0.04) 100%);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.4rem;
+    margin: 0 0 2rem 0;
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-card);
+  }
+  .sibling-note b { color: var(--text-primary); font-weight: 600; }
+  .sibling-note a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    transition: border-color 200ms ease;
+  }
+  .sibling-note a:hover { border-bottom-color: var(--accent); }
+
+  /* ── Stat cards — wide grid, accent glow on top edge ─────── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 2.5rem 0;
+  }
+  .stat {
+    position: relative;
+    background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1.65rem;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 0.5rem;
+  }
+
+  /* ── Recipe panel ─────────────────────────────────────────── */
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.5rem 1.25rem;
+    background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.5rem;
+    margin: 0.5rem 0 2rem;
+    box-shadow: var(--shadow-card);
+    font-size: 0.95rem;
+  }
+  .recipe-label {
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    align-self: center;
+  }
+  .recipe-value {
+    color: var(--text-primary);
+    align-self: center;
+  }
+  .recipe-value code {
+    background: rgba(77, 142, 255, 0.08);
+    color: var(--accent);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+  }
+
+  /* ── Charts ──────────────────────────────────────────────── */
+  .chart-frame {
+    background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.25rem 0.75rem;
+    margin: 0.75rem 0 1.5rem;
+    box-shadow: var(--shadow-card);
+  }
+  .chart {
+    width: 100%;
+    max-width: 100%;
+    height: 420px;
+    margin: 0;
+  }
+  .chart-hint {
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    margin: -0.4rem 0 0.7rem;
+  }
+
+  /* ── Callouts — the sparse-reward math explanation card ──── */
+  .callout {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(251, 191, 36, 0.035) 100%);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--warn);
+    border-radius: var(--radius-md);
+    padding: 1.4rem 1.65rem;
+    margin: 0.75rem 0 1.75rem;
+    font-size: 1.1rem;
+    line-height: 1.65;
+    box-shadow: var(--shadow-card);
+  }
+  .callout p { margin: 0.45rem 0; color: var(--text-secondary); }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout b { color: var(--text-primary); font-weight: 600; }
+  .callout i { color: var(--purple); font-style: italic; }
+  .math {
+    font-family: var(--font-mono);
+    background: var(--bg-base);
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.92em;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+  }
+
+  /* ── Example code cards (fixes) ──────────────────────────── */
+  .example-pair {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 1.25rem;
+    margin: 1rem 0;
+  }
+  .example {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem 1.25rem;
+    margin: 0;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .pass {
+    border-left: 3px solid var(--success);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(52, 211, 153, 0.035) 100%);
+  }
+  .fail {
+    border-left: 3px solid var(--danger);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(248, 113, 113, 0.035) 100%);
+  }
+  pre {
+    margin: 0.7rem 0 0;
+    white-space: pre-wrap;
+    font-family: var(--font-mono);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    font-feature-settings: 'zero' 1;
+  }
+  .label {
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+  }
+  .pass .label { color: var(--success); }
+  .fail .label { color: var(--danger); }
+
+  /* ── Footer ──────────────────────────────────────────────── */
+  footer {
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    margin-top: 4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .container { padding: 2.5rem 2rem 3rem; }
+    .report-header { grid-template-columns: 1fr; }
+    .render-meta { text-align: left; }
+    h1 { font-size: 2.2rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="report-header">
+  <div>
+    <div class="eyebrow">Experiment 4 · RLVR · GSM8K · Gemma-2-2B · v2</div>
+    <h1>Unlocked update budget</h1>
+    <div class="subtitle">Base model: google/gemma-2-2b-it · Held-out: openai/gsm8k test (1,319)</div>
+  </div>
+  <div class="render-meta">Rendered 2026-04-19 00:19</div>
+</header>
+
+
+<div class="sibling-note" style="border-left-color: #f59e0b;">
+  <b>About this run — hunting for GRPO's variance band.</b>
+  The two prior experiments in this repo landed outside the band where
+  GRPO can learn: <b>code-rlvr</b> (MBPP, baseline 2.7%) had groups that were
+  almost all-fail, and <b>math-rlvr</b> (OLMo-2-7B-Instruct on GSM8K, baseline 82.6%)
+  had groups that were mostly all-pass. Both deltas were within noise.
+  This run picks <b>Gemma-2-2B-IT</b> (GSM8K baseline ~51%) and bumps
+  <b>G = 8</b> with <b>temperature 1.0</b> — a configuration designed
+  to keep the fraction of mixed-reward groups as high as possible.
+  <br><br>
+  Companion reports:
+  <a href="../math-rlvr/results/gsm8k_update.html">math-rlvr (OLMo-2-7B · G=4)</a> ·
+  <a href="../code-rlvr/results/grpo_report.html">code-rlvr (MBPP)</a>
+</div>
+
+
+
+
+<div class="stats">
+<div class="stat"><div class="stat-value" style="color:#4d8eff">58.5%</div><div class="stat-label">Baseline pass@1</div></div>
+<div class="stat"><div class="stat-value" style="color:#22c55e">60.3%</div><div class="stat-label">Post-RLVR pass@1</div></div>
+<div class="stat"><div class="stat-value" style="color:#22c55e">+1.8%</div><div class="stat-label">Absolute delta</div></div>
+<div class="stat"><div class="stat-value" style="color:#4d8eff">400</div><div class="stat-label">Training steps</div></div>
+<div class="stat"><div class="stat-value" style="color:#a1a1aa">4.30h</div><div class="stat-label">Wall time</div></div>
+</div>
+
+
+<h2>Recipe</h2>
+<div class="recipe-grid">
+<div class="recipe-label">Base model</div><div class="recipe-value"><code>google/gemma-2-2b-it</code></div>
+<div class="recipe-label">Generations per prompt (G)</div><div class="recipe-value"><code>8</code></div>
+<div class="recipe-label">Temperature</div><div class="recipe-value"><code>1.0</code></div>
+<div class="recipe-label">Training steps</div><div class="recipe-value"><code>400</code></div>
+<div class="recipe-label">Learning rate</div><div class="recipe-value"><code>2e-05</code></div>
+<div class="recipe-label">KL coefficient</div><div class="recipe-value"><code>0.005</code></div>
+<div class="recipe-label">LoRA r / α</div><div class="recipe-value"><code>16 / 32</code></div>
+<div class="recipe-label">Max completion tokens</div><div class="recipe-value"><code>320</code></div>
+<div class="recipe-label">Variance band (predicted)</div><div class="recipe-value"><code>98.5% of groups are mixed-reward</code></div>
+</div>
+
+
+<h2>Why the absolute gain is modest: sparse rewards at low baseline</h2>
+<div class="callout">
+  <p>
+    The baseline model solves only <b style="color:#4d8eff">58.5%</b> of
+    problems. For GRPO to learn, each group of <i>G</i> completions needs
+    <b>at least one passing sample</b> — otherwise every sample gets reward 0,
+    the within-group advantage is 0, and the gradient contribution is 0.
+  </p>
+  <p>
+    With <b>G = 8</b> generations per prompt and baseline pass rate
+    <i>p</i> = 0.585, the fraction of groups that are entirely zero-reward is
+    <span class="math">(1 − p)<sup>G</sup> = (1 − 0.585)<sup>8</sup>
+    ≈ <b style="color:#ef4444">0.1%</b></span>.
+  </p>
+  <p>
+    In other words: <b>~0% of optimizer steps carry no learning
+    signal at all</b>. Only the remaining 100% contribute
+    gradient. The run is doing real RL, but on a fraction of the compute it
+    looks like it's doing.
+  </p>
+  <p style="margin-bottom: 0;">
+    Counter-moves: <b>more generations per prompt</b>
+    (G = 8 → 0% zero-reward · G = 16 → 0%),
+    <b>filter training set</b> to problems the base model solves ≥ sometimes
+    (cheapest, biggest lift), or <b>warm-start</b> with SFT to raise the
+    baseline first. Tulu 3 does all three.
+  </p>
+</div>
+
+<script>
+const PLOT = {
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(20,20,24,0.45)',
+  font: { color: '#c7c7d1', family: 'JetBrains Mono, ui-monospace, monospace', size: 15 },
+  xaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)', linecolor: 'rgba(255,255,255,0.12)', tickfont: { size: 14 } },
+  yaxis: { gridcolor: 'rgba(255,255,255,0.06)', zerolinecolor: 'rgba(255,255,255,0.1)', linecolor: 'rgba(255,255,255,0.12)', tickfont: { size: 14 } },
+  margin: { l: 78, r: 28, t: 28, b: 62 },
+  showlegend: true,
+  legend: { bgcolor: 'rgba(0,0,0,0)', font: { color: '#c7c7d1', size: 14 } },
+};
+</script>
+
+
+<h2>Accuracy on GSM8K test (1,319 problems): before vs. after GRPO</h2>
+<div class="chart-frame"><div id="passat1-chart" class="chart"></div></div>
+<script>
+Plotly.newPlot('passat1-chart', [{x: ['Baseline', 'Post-RLVR'], y: [58.53, 60.35], type: 'bar', marker: {color: ['#4d8eff', '#22c55e']}, text: ['58.5%', '60.3%'], textposition: 'outside', textfont: {color: '#e4e4e7', size: 18}}],
+  {...PLOT, showlegend: false,
+    yaxis: {...PLOT.yaxis, title: 'pass@1 (%)', range: [0, 100]}},
+  {displayModeBar: false, responsive: true});
+</script>
+
+<h2>Average reward (fraction of generations producing the correct answer)</h2>
+<div class="chart-frame"><div id="reward-chart" class="chart"></div></div>
+<script>
+Plotly.newPlot('reward-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 360, 365, 370, 375, 380, 385, 390, 395, 400], y: [0.5, 0.6625, 0.575, 0.75, 0.6375, 0.3875, 0.5375, 0.5125, 0.6125, 0.6375, 0.625, 0.5, 0.4375, 0.5125, 0.675, 0.5, 0.5125, 0.7625, 0.5125, 0.475, 0.6625, 0.575, 0.6375, 0.675, 0.5, 0.9375, 0.725, 0.65, 0.775, 0.4125, 0.575, 0.4375, 0.4125, 0.65, 0.825, 0.4875, 0.8375, 0.6125, 0.6375, 0.5, 0.575, 0.8375, 0.5, 0.4, 0.5, 0.525, 0.55, 0.5875, 0.675, 0.5875, 0.425, 0.5375, 0.7875, 0.575, 0.6375, 0.6625, 0.45, 0.8875, 0.4875, 0.675, 0.525, 0.7, 0.5875, 0.3375, 0.5875, 0.675, 0.5875, 0.3875, 0.7125, 0.425, 0.425, 0.6375, 0.6625, 0.55, 0.5625, 0.3625, 0.275, 0.7125, 0.35, 0.6125], type: 'scatter', mode: 'lines+markers', name: 'Per-log reward', line: {color: '#4d8eff', width: 2}, marker: {size: 5, color: '#4d8eff'}, opacity: 0.55}, {x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 360, 365, 370, 375, 380, 385, 390, 395, 400], y: [0.5, 0.58125, 0.5791666666666666, 0.621875, 0.625, 0.6024999999999999, 0.5774999999999999, 0.565, 0.5375, 0.5375, 0.585, 0.5775, 0.5625, 0.5425, 0.55, 0.525, 0.5275000000000001, 0.5925, 0.5925, 0.5525, 0.585, 0.5974999999999999, 0.5725, 0.605, 0.61, 0.665, 0.6950000000000001, 0.6975, 0.7175, 0.7, 0.6275000000000001, 0.5700000000000001, 0.5225, 0.49749999999999994, 0.58, 0.5625, 0.6425, 0.6825, 0.6799999999999999, 0.615, 0.6325000000000001, 0.6325000000000001, 0.61, 0.5625, 0.5625, 0.5525, 0.495, 0.5125, 0.5675000000000001, 0.5850000000000001, 0.5650000000000001, 0.5625, 0.6025, 0.5825, 0.5925, 0.6399999999999999, 0.6224999999999999, 0.6425, 0.625, 0.6325000000000001, 0.605, 0.655, 0.595, 0.5650000000000001, 0.5475, 0.5775, 0.555, 0.515, 0.5900000000000001, 0.5575, 0.5075000000000001, 0.5175, 0.5725, 0.54, 0.5675, 0.5549999999999999, 0.48250000000000004, 0.4925, 0.4525, 0.4625], type: 'scatter', mode: 'lines', name: 'Rolling mean (5)', line: {color: '#22c55e', width: 3}}],
+  {...PLOT, xaxis: {...PLOT.xaxis, title: 'Training step'},
+    yaxis: {...PLOT.yaxis, title: 'Reward', range: [0, 1]}},
+  {displayModeBar: false, responsive: true});
+</script>
+
+<h2>Reward-variance diagnostic · <code>frac_reward_zero_std</code></h2>
+<p class="chart-hint">
+  Percent of GRPO groups where all {G} completions got the same reward
+  (all-pass or all-fail). These groups have zero advantage and contribute
+  <b>no gradient</b>. Low values = healthy variance = real RL signal.
+  Run average: <b style="color:#ef4444">52.2%</b>.
+</p>
+<div class="chart-frame"><div id="variance-chart" class="chart"></div></div>
+<script>
+Plotly.newPlot('variance-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 360, 365, 370, 375, 380, 385, 390, 395, 400], y: [70.0, 60.0, 40.0, 60.0, 40.0, 30.0, 50.0, 30.0, 50.0, 50.0, 60.0, 60.0, 40.0, 50.0, 30.0, 60.0, 50.0, 60.0, 40.0, 20.0, 60.0, 50.0, 30.0, 40.0, 40.0, 70.0, 40.0, 70.0, 40.0, 70.0, 50.0, 80.0, 70.0, 70.0, 70.0, 30.0, 70.0, 50.0, 70.0, 50.0, 40.0, 60.0, 20.0, 70.0, 30.0, 50.0, 80.0, 70.0, 50.0, 50.0, 40.0, 60.0, 50.0, 70.0, 50.0, 50.0, 60.0, 40.0, 60.0, 70.0, 50.0, 100.0, 40.0, 80.0, 50.0, 60.0, 50.0, 50.0, 70.0, 50.0, 70.0, 30.0, 40.0, 40.0, 50.0, 40.0, 60.0, 50.0, 20.0, 40.0], type: 'scatter', mode: 'lines+markers', name: 'Zero-variance groups', line: {color: '#ef4444', width: 2}, marker: {size: 5}, fill: 'tozeroy', fillcolor: 'rgba(248,113,113,0.08)'}],
+  {...PLOT, showlegend: false,
+    xaxis: {...PLOT.xaxis, title: 'Training step'},
+    yaxis: {...PLOT.yaxis, title: 'Zero-variance groups (%)', range: [0, 100]}},
+  {displayModeBar: false, responsive: true});
+</script>
+
+<h2>KL divergence from reference policy</h2>
+<p class="chart-hint">
+  Low = the trained policy stays close to the reference model. If this
+  explodes, the model has drifted and outputs will degrade.
+</p>
+<div class="chart-frame"><div id="kl-chart" class="chart"></div></div>
+<script>
+Plotly.newPlot('kl-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 360, 365, 370, 375, 380, 385, 390, 395, 400], y: [0.0002335085126105696, 0.00026268625078955664, 0.0002703626509173773, 0.00025272167258663105, 0.0003735526435775682, 0.00048184788320213554, 0.0006115026073530317, 0.0012956894526723773, 0.001439640240278095, 0.002510872529819608, 0.0055334257893264295, 0.004180314624682069, 0.006430720724165439, 0.008059767889790237, 0.007752735493704676, 0.009435581904836, 0.012410428933799266, 0.013269004225730897, 0.010956248035654426, 0.012500331038609147, 0.01134653277695179, 0.012581664230674505, 0.012730989884585143, 0.01109486622735858, 0.014828380011022092, 0.01641515577211976, 0.01520503992214799, 0.015775872860103846, 0.01642656568437815, 0.01741960309445858, 0.01856708051636815, 0.019123400375247002, 0.016555397491902112, 0.018606329523026943, 0.022735707368701695, 0.0191725367680192, 0.01976123871281743, 0.019492889940738677, 0.02084622085094452, 0.019352847803384067, 0.027736248448491096, 0.025977248325943947, 0.021919846720993518, 0.02352137314155698, 0.021476759016513823, 0.025848641619086267, 0.02526909448206425, 0.022862373292446135, 0.025077886041253807, 0.02401215173304081, 0.01977190300822258, 0.02520937528461218, 0.027350770123302937, 0.02350847590714693, 0.024697148241102695, 0.025418950989842416, 0.024336338229477405, 0.032299653813242915, 0.02457752600312233, 0.025294123403728008, 0.025147929042577743, 0.029255017824470996, 0.02121826047077775, 0.02417477872222662, 0.03184511233121157, 0.024320740438997745, 0.026969659607857466, 0.026091980934143066, 0.027471083030104638, 0.022687453590333462, 0.026871437765657903, 0.026708453334867953, 0.03147782329469919, 0.022944268118590117, 0.02260186243802309, 0.025375368259847163, 0.03137654475867748, 0.02378546092659235, 0.025779476575553417, 0.023459894489496945], type: 'scatter', mode: 'lines+markers', name: 'KL', line: {color: '#f59e0b', width: 2}, marker: {size: 5}}],
+  {...PLOT, showlegend: false,
+    xaxis: {...PLOT.xaxis, title: 'Training step'},
+    yaxis: {...PLOT.yaxis, title: 'KL'}},
+  {displayModeBar: false, responsive: true});
+</script>
+
+<h2>Policy loss and gradient norm</h2>
+<div class="chart-frame"><div id="loss-chart" class="chart"></div></div>
+<script>
+Plotly.newPlot('loss-chart', [{x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 360, 365, 370, 375, 380, 385, 390, 395, 400], y: [0.004462561756372452, 0.01868280619382858, -0.02290104627609253, 0.00522671677172184, 0.0017266809940338136, 0.006790752708911896, 0.017450392246246338, 0.002288392186164856, 0.003951887786388397, 0.004120032489299774, 0.02343662679195404, 0.004841074347496033, -0.0004093378782272339, -0.0015968918800354005, 0.020601773262023927, 0.005113921314477921, 0.001496759057044983, 0.019799955189228058, 0.013926102221012116, 0.023222030699253084, -0.025212234258651732, 0.012995949387550354, 0.008511388301849365, 0.009243687987327576, 0.02416604906320572, 0.007813503593206405, 0.014005394279956817, 0.0004299007821828127, 0.02913801372051239, 0.02425934374332428, -0.03486523926258087, 0.0014518138021230697, 0.023073092103004456, -0.025846770405769347, 0.0172500342130661, 0.04685165584087372, 0.006806904077529907, 0.017572540044784545, 0.0011985749006271362, 0.028274357318878174, 0.02912256121635437, 0.023841410875320435, 0.033154428005218506, 0.008898575603961945, 0.03822949826717377, 0.020154494047164916, 0.01530316323041916, 0.05446606278419495, 0.022254061698913575, 0.02655397355556488, 0.03214065730571747, 0.02115817666053772, 0.025506386160850526, -0.01350388526916504, 0.019238209724426268, 0.029049229621887208, 0.008412905037403107, -0.0038028977811336516, 0.026864099502563476, -0.0007217675447463989, -0.02466357797384262, 0.00014632913516834378, 0.019313415884971617, 0.003871312364935875, -0.009310877323150635, -0.0007437495514750481, -0.028768667578697206, 0.02144872546195984, -0.010701274871826172, -0.010018733143806458, 0.001367385871708393, 0.060163503885269164, 0.003173203766345978, -0.0015724435448646545, 0.0006426645442843438, -0.0004602007567882538, -0.016537068784236907, -0.016196712851524353, 0.004655540734529495, 0.02624737024307251], type: 'scatter', mode: 'lines', name: 'Loss', line: {color: '#4d8eff', width: 2}, yaxis: 'y'}, {x: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210, 215, 220, 225, 230, 235, 240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 360, 365, 370, 375, 380, 385, 390, 395, 400], y: [0.0001392364501953125, 0.50390625, 0.359375, 0.53125, 0.44921875, 0.30859375, 0.404296875, 0.58984375, 0.38671875, 0.54296875, 0.6875, 0.447265625, 0.5234375, 0.6328125, 0.53125, 0.00136566162109375, 0.359375, 0.431640625, 0.42578125, 0.451171875, 0.005645751953125, 0.455078125, 0.4296875, 0.296875, 0.3515625, 0.0026702880859375, 0.005218505859375, 0.002166748046875, 0.37890625, 0.443359375, 0.95703125, 0.0038604736328125, 0.376953125, 0.83984375, 0.002532958984375, 0.5703125, 0.52734375, 0.33984375, 0.265625, 0.001983642578125, 0.4375, 0.984375, 0.392578125, 0.322265625, 0.5234375, 0.0025482177734375, 0.271484375, 0.007415771484375, 0.005462646484375, 0.6484375, 0.1943359375, 0.30078125, 0.5703125, 0.003173828125, 0.00341796875, 0.0023193359375, 0.423828125, 0.6171875, 0.5390625, 0.345703125, 0.0027618408203125, 0.0030975341796875, 0.478515625, 0.326171875, 0.451171875, 0.44921875, 0.3671875, 0.3125, 0.52734375, 0.66796875, 0.00433349609375, 0.58203125, 0.00885009765625, 0.2333984375, 0.396484375, 0.54296875, 0.37109375, 0.93359375, 0.52734375, 0.0025482177734375], type: 'scatter', mode: 'lines', name: 'Grad norm', line: {color: '#ef4444', width: 2, dash: 'dot'}, yaxis: 'y2'}],
+  {...PLOT,
+    xaxis: {...PLOT.xaxis, title: 'Training step'},
+    yaxis: {...PLOT.yaxis, title: 'Loss', side: 'left'},
+    yaxis2: {gridcolor: 'rgba(255,255,255,0.06)', title: 'Grad norm',
+             overlaying: 'y', side: 'right', color: '#ef4444'}},
+  {displayModeBar: false, responsive: true});
+</script>
+
+<h2>Per-problem flip analysis (1319 common problems)</h2>
+<p class="chart-hint">
+  What happened at the problem level, not just in aggregate. Big green bar
+  is the fix rate — how many previously-failing problems the RLVR-trained
+  model now solves.
+</p>
+<div class="chart-frame"><div id="flip-chart" class="chart"></div></div>
+<script>
+Plotly.newPlot('flip-chart', [{x: ["Fixed (fail\u2192pass)", "Regressed (pass\u2192fail)", "Still passing", "Still failing"], y: [120, 96, 676, 427], type: 'bar', marker: {color: ["#22c55e", "#ef4444", "#4d8eff", "#a1a1aa"]}, text: [120, 96, 676, 427], textposition: 'outside', textfont: {color: '#e4e4e7', size: 16}}],
+  {...PLOT, showlegend: false,
+    yaxis: {...PLOT.yaxis, title: 'Problems'}},
+  {displayModeBar: false, responsive: true});
+</script>
+<h2>Example fixes — problems the model learned to solve after RLVR</h2>
+<div class="example-pair">
+  <div class="example fail">
+    <div class="label">Task 0 — baseline FAIL</div>
+    <pre>Here&#x27;s how to solve the problem step-by-step:
+
+**1. Eggs left after eating:**
+
+* Janet starts with 16 eggs.
+* She eats 3, leaving 16 - 3 = 13 eggs.
+
+**2. Eggs for muffins:**
+
+* She bakes 4 muffins.
+
+**3. Eggs for sale:**
+
+* She has 13 eggs left.
+
+**4. Earnings from eggs:**
+
+* She sells 13 eggs at $2 each, earning 13 * $2 = $26.
+
+**Answer:** Janet makes $26 at the farmers&#x27; market every day.</pre>
+  </div>
+  <div class="example pass">
+    <div class="label">Task 0 — post-RLVR PASS</div>
+    <pre>Here&#x27;s how to solve this problem step-by-step:
+
+**1. Eggs laid:** Janet&#x27;s ducks lay 16 eggs/day.
+
+**2. Eggs left after eating:** She eats 3, leaving 16 - 3 = 13 eggs.
+
+**3. Eggs for muffins:** She uses 4 eggs for muffins, leaving 13 - 4 = 9 eggs.
+
+**4. Eggs for sale:** She sells 9 eggs.
+
+**5. Earnings:** She sells each egg for $2, so she earns 9 * $2 = $18.
+
+
+**Answer:** Janet makes $18 every day at the farmers&#x27; market.</pre>
+  </div>
+</div>
+<div class="example-pair">
+  <div class="example fail">
+    <div class="label">Task 11 — baseline FAIL</div>
+    <pre>Here&#x27;s how to break down the problem:
+
+* **Donuts:** 3 dozen donuts * $68/dozen = $204
+* **Mini Cupcakes:** 2 dozen mini cupcakes * $80/dozen = $160
+* **Mini Cheesecakes:** 6 dozen mini cheesecakes * $55/dozen = $330
+
+**Total Cost:** $204 + $160 + $330 = $704
+
+**Answer:** The total cost of the pastries was $704.</pre>
+  </div>
+  <div class="example pass">
+    <div class="label">Task 11 — post-RLVR PASS</div>
+    <pre>Here&#x27;s how to solve that problem:
+
+**1. Calculate the cost of the donuts:**
+
+* 3 dozen donuts * $68/dozen = $204
+
+**2. Calculate the cost of the mini cupcakes:**
+
+* 2 dozen mini cupcakes * $80/dozen = $160
+
+**3. Calculate the cost of the mini cheesecakes:**
+
+* 6 dozen mini cheesecakes * $55/dozen = $330
+
+**4. Calculate the total cost:**
+
+* $204 + $160 + $330 = $694
+
+**Answer:** The total cost of the pastries was $694.</pre>
+  </div>
+</div>
+
+<footer>
+  Generated by gemma-rlvr/make_report.py · source:
+  <a href="https://github.com/tjuzek/rlvr-demo" style="color:var(--text-muted);text-decoration:underline;">github.com/tjuzek/rlvr-demo</a>
+</footer>
+
+</div>
+</body>
+</html>
